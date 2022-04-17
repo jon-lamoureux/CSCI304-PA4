@@ -1,7 +1,7 @@
 from socket import *
 import random
-playerPort = 12000
-dealerPort = 12001
+playerPort = 12002
+dealerPort = 12003
 playerSocket, dealerSocket = socket(AF_INET, SOCK_DGRAM), socket(AF_INET, SOCK_DGRAM)
 playerSocket.bind(('', playerPort))
 dealerSocket.bind(('', dealerPort))
@@ -24,7 +24,11 @@ random.shuffle(deck)
 playerTotal, dealerTotal = 0, 0
 print("Welcome to Blackjack!")
 turn = 1
-
+playerAce = 0
+dealerAce = 0
+dealerDraws = 0
+playerDraws = 0
+blackjack = 0
 # Infinite Loop Until Game Ends
 while True:
     # Get player input and dealer input before starting the game
@@ -34,20 +38,35 @@ while True:
     # Assign the player a card
     playerCard = deck.pop(0)
     playerTotal += int(playerCard[1])
+    playerDraws += 1;
 
-    # Send teh results to the dealer and player
-    dealerResult = "The player drew the %s, for a total of %d" % (playerCard[0], playerTotal)
-    playerResult = "You drew the %s, for a total of %d" % (playerCard[0], playerTotal)
+    # If ace
+    if playerTotal == 1:
+        playerAce = 1
+        dealerResult = "p:%s:%d/%d" % (playerCard[0], playerTotal, 11)
+        playerResult = "p:%s:%d/%d" % (playerCard[0], playerTotal, 11)
+    else:
+        dealerResult = "p:%s:%d" % (playerCard[0], playerTotal)
+        playerResult = "p:%s:%d" % (playerCard[0], playerTotal)
+
+    # Send the results to the dealer and player
     playerSocket.sendto(playerResult.encode(), playerAddress)
     dealerSocket.sendto(dealerResult.encode(), dealerAddress)
 
     # Draw the dealer's card
     dealerCard = deck.pop(0)
     dealerTotal += int(dealerCard[1])
+    dealerDraws += 1;
+
+    if dealerTotal == 1:
+        dealerAce = 1;
+        dealerResult = "d:%s:%d/%d" % (dealerCard[0], dealerTotal, 11)
+        playerResult = "d:%s:%d/%d" % (dealerCard[0], dealerTotal, 11)
+    else:
+        dealerResult = "d:%s:%d" % (dealerCard[0], dealerTotal)
+        playerResult = "d:%s:%d" % (dealerCard[0], dealerTotal)
 
     # Send the results to the dealer and player
-    dealerResult = "You drew the %s, for a total of %d" % (dealerCard[0], dealerTotal)
-    playerResult = "The dealer drew the %s, for a total of %d" % (dealerCard[0], dealerTotal)
     dealerSocket.sendto(dealerResult.encode(), dealerAddress)
     playerSocket.sendto(playerResult.encode(), playerAddress)
 
@@ -61,12 +80,30 @@ while True:
     while decision != "2":
         playerCard = deck.pop(0)
         playerTotal += int(playerCard[1])
-        dealerResult = "The player drew the %s, for a total of %d" % (playerCard[0], playerTotal)
-        playerResult = "You drew the %s, for a total of %d" % (playerCard[0], playerTotal)
+        playerDraws += 1
+        if "Ace" in playerCard[0]:
+            playerAce = 1
+        if playerTotal < 11 and playerAce == 1:
+            dealerResult = "p:%s:%d/%d" % (playerCard[0], playerTotal, (playerTotal + 10))
+            playerResult = "p:%s:%d/%d" % (playerCard[0], playerTotal, (playerTotal + 10))
+        elif playerTotal >= 11 and playerAce == 1:
+            dealerResult = "p:%s:%d" % (playerCard[0], playerTotal)
+            playerResult = "p:%s:%d" % (playerCard[0], playerTotal)
+        else:
+            dealerResult = "p:%s:%d" % (playerCard[0], playerTotal)
+            playerResult = "p:%s:%d" % (playerCard[0], playerTotal)
         playerSocket.sendto(playerResult.encode(), playerAddress)
         dealerSocket.sendto(dealerResult.encode(), dealerAddress)
+
+        # If Blackjack
+        if playerTotal == 11 and playerAce == 1 and playerDraws == 2:
+            result = "bj:21"
+            dealerSocket.sendto(result.encode(), dealerAddress)
+            playerSocket.sendto(result.encode(), playerAddress)
+            blackjack = 1
+            break
         if playerTotal > 21:
-            result = "The player busted, so the dealer won!"
+            result = "pl"
             dealerSocket.sendto(result.encode(), dealerAddress)
             playerSocket.sendto(result.encode(), playerAddress)
             break
@@ -76,34 +113,61 @@ while True:
         decision = playerInput.decode()
     if playerTotal > 21:
         break
+    if playerTotal <= 11 and playerAce == 1:
+        playerTotal += 10
     turn = '2'.encode()
     dealerSocket.sendto(turn, dealerAddress)
     dealerInput, dealerAddress = dealerSocket.recvfrom(2048)
     dealerDecision = dealerInput.decode()
-    while dealerDecision != 2:
+    while dealerDecision != "2":
+        # Draw a card
         dealerCard = deck.pop(0)
         dealerTotal += int(dealerCard[1])
-        playerResult = "The dealer drew the %s, for a total of %d" % (dealerCard[0], dealerTotal)
+        dealerDraws += 1
+
+        if "Ace" in dealerCard[0]:
+            dealerAce = 1
+        # Print result of that card
+        if dealerTotal < 11 and dealerAce == 1:
+            playerResult = "d:%s:%d/%d" % (dealerCard[0], dealerTotal, (dealerTotal + 10))
+            dealerResult = "d:%s:%d/%d" % (dealerCard[0], dealerTotal, (dealerTotal + 10))
+        elif dealerTotal >= 11 and dealerAce == 1:
+            playerResult = "d:%s:%d" % (dealerCard[0], dealerTotal)
+            dealerResult = "d:%s:%d" % (dealerCard[0], dealerTotal)
+        else:
+            playerResult = "d:%s:%d" % (dealerCard[0], dealerTotal)
+            dealerResult = "d:%s:%d" % (dealerCard[0], dealerTotal)
+        # Send to player and dealer
         playerSocket.sendto(playerResult.encode(), playerAddress)
-        dealerResult = "You drew the %s, for a total of %d" % (dealerCard[0], dealerTotal)
         dealerSocket.sendto(dealerResult.encode(), dealerAddress)
-        if dealerTotal > 21:
-            result = "The dealer busted, so the player won!"
+        # If Blackjack
+        if dealerTotal == 11 and dealerAce == 1 and dealerDraws == 2:
+            result = "pl"
             dealerSocket.sendto(result.encode(), dealerAddress)
             playerSocket.sendto(result.encode(), dealerAddress)
+            if blackjack == 1:
+                result = "tie"
+                dealerSocket.sendto(result.encode(), dealerAddress)
+                playerSocket.sendto(result.encode(), dealerAddress)
+                break
+        if dealerTotal > 21:
+            result = "dl"
+            dealerSocket.sendto(result.encode(), dealerAddress)
+            playerSocket.sendto(result.encode(), playerAddress)
             break
         turn = '2'.encode()
         dealerSocket.sendto(turn, dealerAddress)
         dealerInput, dealerAddress = dealerSocket.recvfrom(2048)
         dealerDecision = dealerInput.decode()
+    if dealerTotal <= 11 and dealerAce == 1:
+        dealerTotal += 10
     if dealerTotal > 21:
         break
     if dealerTotal > playerTotal:
-        result = "The dealer won!"
+        result = "pl"
     elif dealerTotal == playerTotal:
-        result = "It was a draw!"
+        result = "tie"
     else:
-        result = "The player won!"
+        result = "dl"
     playerSocket.sendto(result.encode(), playerAddress)
     dealerSocket.sendto(result.encode(), dealerAddress)
-    break
