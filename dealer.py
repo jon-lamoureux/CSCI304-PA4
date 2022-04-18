@@ -37,7 +37,7 @@ def createGUI():
         global choice
         choice = '2'
 
-    bg = PhotoImage(file = "background-2.png")
+    bg = PhotoImage(file = "background.png")
     canvas1 = Canvas(root, width=1000, height=500)
     canvas1.pack(fill="both", expand=True)
     canvas1.create_image( 0, 0, image = bg, anchor = "nw")
