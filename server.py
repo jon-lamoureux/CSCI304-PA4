@@ -142,11 +142,13 @@ while True:
         dealerSocket.sendto(dealerResult.encode(), dealerAddress)
         # If Blackjack
         if dealerTotal == 11 and dealerAce == 1 and dealerDraws == 2:
-            result = "pl"
-            dealerSocket.sendto(result.encode(), dealerAddress)
-            playerSocket.sendto(result.encode(), dealerAddress)
             if blackjack == 1:
                 result = "tie"
+                dealerSocket.sendto(result.encode(), dealerAddress)
+                playerSocket.sendto(result.encode(), dealerAddress)
+                break
+            else:
+                result = "pl"
                 dealerSocket.sendto(result.encode(), dealerAddress)
                 playerSocket.sendto(result.encode(), dealerAddress)
                 break
