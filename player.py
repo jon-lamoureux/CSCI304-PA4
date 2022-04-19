@@ -20,7 +20,7 @@ card = {
 currCards, dealCards, resulttxt = "", "", ""
 currTotal, dealTotal = 0, 0
 def createGUI():
-    global choice, text, text2, text3, text4, textResult, canvas1
+    global choice, text1, text2, text3, text4, textResult, canvas1
     # Create GUI
     root = Tk()
     root.title('Blackjack - Player')
@@ -40,7 +40,7 @@ def createGUI():
     canvas1 = Canvas(root, width=1000, height=500)
     canvas1.pack(fill="both", expand=True)
     canvas1.create_image( 0, 0, image = bg, anchor = "nw")
-    text = canvas1.create_text(520,440,text=currTotal, font=('Helvetica','20','bold'))
+    text1 = canvas1.create_text(520,440,text=currTotal, font=('Helvetica','20','bold'))
     text2 = canvas1.create_text(520,390,text=currCards, font=('Helvetica','20','bold'))
     text3 = canvas1.create_text(520,260,text=dealTotal, font=('Helvetica','20','bold',), fill='#800000')
     text4 = canvas1.create_text(520,310,text=dealCards, font=('Helvetica','20','bold'), fill='#800000')
@@ -75,7 +75,7 @@ def serverConn():
             if spliced[0] == "p":
                 currTotal = spliced[2]
                 currCards = currCards + " " + card[spliced[1]]
-                canvas1.itemconfigure(text, text=currTotal)
+                canvas1.itemconfigure(text1, text=currTotal)
                 canvas1.itemconfigure(text2, text=currCards)
             elif spliced[0] == "pl":
                 canvas1.itemconfigure(textResult, text="You lose!")
